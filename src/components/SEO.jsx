@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { businessData, ADDRESS_DATA, BRAND_NAME, NICHE, NEIGHBORHOOD, CITY } from '../data';
+import { businessData, ADDRESS_DATA, BRAND_NAME, NICHE, NEIGHBORHOOD, CITY, parseScheduleItem } from '../data';
 
 export default function SEO() {
   useEffect(() => {
@@ -19,30 +19,14 @@ export default function SEO() {
     };
 
     const openingHoursSpecs = (businessData.horarios || [])
-      .filter(item => !item.toLowerCase().includes('fechado'))
-      .map(item => {
-        // Ex: "terça-feira: 13:00 – 19:00"
-        const [dayPart, timePart] = item.split(':').map(s => s.trim());
-        const dayOfWeek = dayMap[dayPart.toLowerCase()] || dayPart;
-        
-        let opens = '';
-        let closes = '';
-
-        if (timePart) {
-          const times = timePart.split(/[–\-]/).map(t => t.trim());
-          if (times.length >= 2) {
-            opens = times[0];
-            closes = times[1];
-          }
-        }
-
-        return {
-          '@type': 'OpeningHoursSpecification',
-          dayOfWeek: dayOfWeek,
-          opens: opens,
-          closes: closes
-        };
-      });
+      .map(item => parseScheduleItem(item))
+      .filter(item => !item.isClosed && item.opens && item.closes)
+      .map(item => ({
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: dayMap[item.diaKey] || item.diaKey,
+        opens: item.opens,
+        closes: item.closes
+      }));
 
     // Filtra redes sociais válidas para sameAs
     const sameAsList = Object.values(businessData.redes_sociais || {}).filter(

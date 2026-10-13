@@ -1,11 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Phone, Clock, ExternalLink, Calendar, Navigation } from 'lucide-react';
-import { businessData, CLEAN_PHONE, GOOGLE_MAPS_URL, getScheduleStatus } from '../data';
+import { businessData, CLEAN_PHONE, GOOGLE_MAPS_URL, getScheduleStatus, parseScheduleItem } from '../data';
 
 export default function Contact() {
   const scheduleStatus = getScheduleStatus();
-  const currentDayIndex = new Date().getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
 
   // Mapeamento dos dias na ordem da lista original do JSON
   const dayIndices = {
@@ -17,6 +16,22 @@ export default function Contact() {
     'sábado': 6,
     'domingo': 0
   };
+
+  const getSaoPauloDayIndex = () => {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Sao_Paulo',
+        weekday: 'short'
+      });
+      const weekday = formatter.format(new Date());
+      const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+      return map[weekday] ?? new Date().getDay();
+    } catch {
+      return new Date().getDay();
+    }
+  };
+
+  const currentDayIndex = getSaoPauloDayIndex();
 
   return (
     <section id="contato" className="py-24 sm:py-32 relative bg-bg-surface/60 border-t border-subtle">
@@ -120,7 +135,16 @@ export default function Contact() {
             {/* Banner de Status Atual */}
             <div className="p-5 rounded-xl bg-bg-surface border border-subtle flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className={`w-3 h-3 rounded-full ${scheduleStatus.isOpen ? 'bg-emerald-500 animate-ping' : 'bg-amber-500/80'}`} />
+                <span className="relative flex h-3 w-3 shrink-0">
+                  {scheduleStatus.isOpen ? (
+                    <>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                    </>
+                  ) : (
+                    <span className="inline-flex rounded-full h-3 w-3 bg-amber-500/80" />
+                  )}
+                </span>
                 <div>
                   <p className="text-sm font-medium text-ink-primary">
                     Status: <span className="text-accent">{scheduleStatus.statusLabel}</span>
@@ -154,17 +178,16 @@ export default function Contact() {
 
             <div className="space-y-2.5">
               {(businessData.horarios || []).map((item) => {
-                const [dia, horario] = item.split(':').map((s) => s.trim());
-                const dayIndex = dayIndices[dia.toLowerCase()];
+                const { dia, diaKey, horario, isClosed } = parseScheduleItem(item);
+                const dayIndex = dayIndices[diaKey];
                 const isToday = dayIndex === currentDayIndex;
-                const isClosed = horario.toLowerCase().includes('fechado');
 
                 return (
                   <div
-                    key={dia}
+                    key={diaKey}
                     className={`flex items-center justify-between py-2.5 px-3.5 rounded-lg text-sm transition-colors ${
                       isToday
-                        ? 'bg-accent/15 border border-accent/40 font-semibold text-ink-primary'
+                        ? 'bg-accent/15 border border-accent/40 font-semibold text-ink-primary shadow-sm'
                         : 'text-ink-secondary hover:bg-white/[0.02]'
                     }`}
                   >
@@ -172,7 +195,7 @@ export default function Contact() {
                       {isToday && (
                         <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                       )}
-                      <span className="capitalize">{dia}</span>
+                      <span>{dia}</span>
                       {isToday && (
                         <span className="text-[10px] text-accent uppercase font-bold tracking-wider ml-1 bg-accent/20 px-1.5 py-0.5 rounded">
                           Hoje
@@ -180,13 +203,19 @@ export default function Contact() {
                       )}
                     </div>
 
-                    <span
-                      className={`font-mono text-xs sm:text-sm ${
-                        isClosed ? 'text-ink-muted' : isToday ? 'text-accent font-semibold' : 'text-ink-primary/90'
-                      }`}
-                    >
-                      {horario}
-                    </span>
+                    {isClosed ? (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/[0.04] text-ink-muted border border-white/5 font-normal">
+                        Fechado
+                      </span>
+                    ) : (
+                      <span
+                        className={`font-mono text-xs sm:text-sm ${
+                          isToday ? 'text-accent font-semibold' : 'text-ink-primary/90'
+                        }`}
+                      >
+                        {horario}
+                      </span>
+                    )}
                   </div>
                 );
               })}

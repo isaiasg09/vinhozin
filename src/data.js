@@ -95,17 +95,61 @@ export const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=
   `${businessData.nome_completo_maps || businessData.nome} ${businessData.endereco}`
 )}`;
 
+// Utilitário para formatar e extrair dia e horários de forma segura
+export const parseScheduleItem = (item) => {
+  if (!item || typeof item !== 'string') {
+    return {
+      dia: '',
+      diaKey: '',
+      horario: '',
+      rawHorario: '',
+      isClosed: true,
+      opens: '',
+      closes: ''
+    };
+  }
+
+  const colonIndex = item.indexOf(':');
+  const dia = colonIndex !== -1 ? item.slice(0, colonIndex).trim() : item.trim();
+  const rawHorario = colonIndex !== -1 ? item.slice(colonIndex + 1).trim() : '';
+  const isClosed = rawHorario.toLowerCase().includes('fechado') || rawHorario === '';
+
+  let formattedHorario = 'Fechado';
+  let opens = '';
+  let closes = '';
+
+  if (!isClosed) {
+    const times = rawHorario.match(/\b\d{1,2}:\d{2}\b/g);
+    if (times && times.length >= 2) {
+      opens = times[0];
+      closes = times[1];
+      formattedHorario = `${opens} às ${closes}`;
+    } else {
+      const matchH = rawHorario.match(/(\d{1,2}h(?:\d{2})?)\s*[–\-]\s*(\d{1,2}h(?:\d{2})?)/i);
+      if (matchH) {
+        opens = matchH[1];
+        closes = matchH[2];
+        formattedHorario = `${opens} às ${closes}`;
+      } else {
+        formattedHorario = rawHorario.replace(/\s*[–\-]\s*/g, ' às ');
+      }
+    }
+  }
+
+  return {
+    dia: dia.charAt(0).toUpperCase() + dia.slice(1),
+    diaKey: dia.toLowerCase(),
+    horario: formattedHorario,
+    rawHorario,
+    isClosed,
+    opens,
+    closes
+  };
+};
+
 // Utilitário para verificar status de funcionamento atual em America/Sao_Paulo
 export const getScheduleStatus = () => {
   try {
-    const spTimeStr = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Sao_Paulo",
-      hour: "numeric",
-      minute: "numeric",
-      hour12: false,
-      weekday: "short"
-    }).format(new Date());
-
     const now = new Date();
     const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Sao_Paulo",
@@ -129,7 +173,6 @@ export const getScheduleStatus = () => {
     // Sábado: 10:00 - 14:00 (600 - 840 min)
     // Domingo e Segunda: Fechado
     let isOpen = false;
-    let nextOpenText = "Aberto de Terça a Sexta às 13h";
 
     if (["Tue", "Wed", "Thu", "Fri"].includes(weekday)) {
       if (totalMinutes >= 780 && totalMinutes < 1140) {
@@ -141,10 +184,14 @@ export const getScheduleStatus = () => {
       }
     }
 
+    const scheduleHint = isOpen
+      ? (weekday === "Sat" ? "Atendimento presencial hoje até às 14h" : "Atendimento presencial hoje até às 19h")
+      : "Consulte disponibilidade e atendimento no WhatsApp";
+
     return {
       isOpen,
       statusLabel: isOpen ? "Aberto agora" : "Fechado no momento",
-      scheduleHint: isOpen ? "Atendimento presencial até às 19h" : "Consulte disponibilidade e atendimento no WhatsApp"
+      scheduleHint
     };
   } catch {
     return {
@@ -154,3 +201,4 @@ export const getScheduleStatus = () => {
     };
   }
 };
+
