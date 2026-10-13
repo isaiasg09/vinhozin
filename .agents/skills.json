@@ -1,0 +1,28 @@
+{
+  "entries": [
+    {
+      "path": "C:/Users/isaia/.agents/skills",
+      "include_only": [
+        "^ui-ux-pro-max$",
+        "^page-cro$",
+        "^copywriting$",
+        "^scroll-experience$",
+        "^tailwind-patterns$",
+        "^schema-markup$",
+        "^brandkit$",
+        "^design-taste-frontend$",
+        "^design-taste-frontend-v1$",
+        "^full-output-enforcement$",
+        "^gpt-taste$",
+        "^high-end-visual-design$",
+        "^image-to-code$",
+        "^imagegen-frontend-mobile$",
+        "^imagegen-frontend-web$",
+        "^industrial-brutalist-ui$",
+        "^minimalist-ui$",
+        "^redesign-existing-projects$",
+        "^stitch-design-taste$"
+      ]
+    }
+  ]
+}
